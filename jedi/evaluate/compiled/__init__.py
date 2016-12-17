@@ -78,6 +78,13 @@ class CompiledObject(Base):
     @property
     def doc(self):
         return inspect.getdoc(self.obj) or ''
+        
+    @property
+    def raw_doc(self):
+        try:
+            return unicode(self.doc)
+        except NameError: # python 3
+            return self.doc
 
     @property
     def params(self):
@@ -198,7 +205,12 @@ class CompiledObject(Base):
     def _execute_function(self, params):
         if self.type != 'funcdef':
             return
-
+        from jedi.evaluate import docstrings
+        types = docstrings.find_return_types(self._evaluator, self)
+        if types:
+            for result in types:
+                debug.dbg('docstrings type return: %s in %s', result, self)
+                yield result
         for name in self._parse_function_doc()[1].split():
             try:
                 bltn_obj = getattr(_builtins, name)
